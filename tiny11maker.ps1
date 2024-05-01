@@ -156,6 +156,10 @@ if ($architecture -eq 'amd64') {
 & 'icacls' "$mainOSDrive\scratchdir\Windows\System32\Microsoft-Edge-Webview" '/grant' 'Administrators:F' '/T' '/C' >null
 Remove-Item -Path "$mainOSDrive\scratchdir\Windows\System32\Microsoft-Edge-Webview" -Recurse -Force >null
 Write-Host "Removing OneDrive:"
+& 'takeown' '/f' "$mainOSDrive\scratchdir\Windows\System32\LogFiles\WMI\RtBackup"
+& 'icacls' "$mainOSDrive\scratchdir\Windows\System32\LogFiles\WMI\RtBackup" '/grant' 'Administrators:F' '/T' '/C'
+& 'takeown' '/f' "$mainOSDrive\scratchdir\Windows\System32\WebThreatDefSvc"
+& 'icacls' "$mainOSDrive\scratchdir\Windows\System32\WebThreatDefSvc" '/grant' 'Administrators:F' '/T' '/C'
 & 'takeown' '/f' "$mainOSDrive\scratchdir\Windows\System32\OneDriveSetup.exe" >null
 & 'icacls' "$mainOSDrive\scratchdir\Windows\System32\OneDriveSetup.exe" '/grant' 'Administrators:F' '/T' '/C' >null
 Remove-Item -Path "$mainOSDrive\scratchdir\Windows\System32\OneDriveSetup.exe" -Force >null
