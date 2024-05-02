@@ -14,6 +14,8 @@ if ((Get-ExecutionPolicy) -eq 'Restricted') {
 }
 
 # Check and run the script as admin if required
+$adminSID = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-544")
+$adminGroup = $adminSID.Translate([System.Security.Principal.NTAccount])
 $myWindowsID=[System.Security.Principal.WindowsIdentity]::GetCurrent()
 $myWindowsPrincipal=new-object System.Security.Principal.WindowsPrincipal($myWindowsID)
 $adminRole=[System.Security.Principal.WindowsBuiltInRole]::Administrator
@@ -68,7 +70,7 @@ $index = Read-Host "Please enter the image index"
 Write-Host "Mounting Windows image. This may take a while."
 $wimFilePath = "$($env:SystemDrive)\tiny11\sources\install.wim" 
 & takeown "/F" $wimFilePath 
-& icacls $wimFilePath "/grant" "Administrators:(F)" 
+& icacls $wimFilePath "/grant" "$($adminGroup.Value):(F)"
 try {
     Set-ItemProperty -Path $wimFilePath -Name IsReadOnly -Value $false -ErrorAction Stop
 } catch {
@@ -134,7 +136,7 @@ if ($architecture -eq 'amd64') {
 
     if ($folderPath) {
         & 'takeown' '/f' $folderPath '/r' >null
-        & 'icacls' $folderPath '/grant' 'Administrators:F' '/T' '/C' >null
+        & icacls $folderPath  "/grant" "$($adminGroup.Value):(F)" '/T' '/C' >null
         Remove-Item -Path $folderPath -Recurse -Force >null
     } else {
         Write-Host "Folder not found."
@@ -144,7 +146,7 @@ if ($architecture -eq 'amd64') {
 
     if ($folderPath) {
         & 'takeown' '/f' $folderPath '/r'>null
-        & 'icacls' $folderPath '/grant' 'Administrators:F' '/T' '/C' >null
+        & icacls $folderPath  "/grant" "$($adminGroup.Value):(F)" '/T' '/C' >null
         Remove-Item -Path $folderPath -Recurse -Force >null
     } else {
         Write-Host "Folder not found."
@@ -153,7 +155,7 @@ if ($architecture -eq 'amd64') {
     Write-Host "Unknown architecture: $architecture"
 }
 & 'takeown' '/f' "$mainOSDrive\scratchdir\Windows\System32\Microsoft-Edge-Webview" '/r' >null
-& 'icacls' "$mainOSDrive\scratchdir\Windows\System32\Microsoft-Edge-Webview" '/grant' 'Administrators:F' '/T' '/C' >null
+& 'icacls' "$mainOSDrive\scratchdir\Windows\System32\Microsoft-Edge-Webview" '/grant' "$($adminGroup.Value):(F)" '/T' '/C' >null
 Remove-Item -Path "$mainOSDrive\scratchdir\Windows\System32\Microsoft-Edge-Webview" -Recurse -Force >null
 Write-Host "Removing OneDrive:"
 & 'takeown' '/f' "$mainOSDrive\scratchdir\Windows\System32\LogFiles\WMI\RtBackup"
@@ -161,7 +163,7 @@ Write-Host "Removing OneDrive:"
 & 'takeown' '/f' "$mainOSDrive\scratchdir\Windows\System32\WebThreatDefSvc"
 & 'icacls' "$mainOSDrive\scratchdir\Windows\System32\WebThreatDefSvc" '/grant' 'Administrators:F' '/T' '/C'
 & 'takeown' '/f' "$mainOSDrive\scratchdir\Windows\System32\OneDriveSetup.exe" >null
-& 'icacls' "$mainOSDrive\scratchdir\Windows\System32\OneDriveSetup.exe" '/grant' 'Administrators:F' '/T' '/C' >null
+& 'icacls' "$mainOSDrive\scratchdir\Windows\System32\OneDriveSetup.exe" '/grant' "$($adminGroup.Value):(F)" '/T' '/C' >null
 Remove-Item -Path "$mainOSDrive\scratchdir\Windows\System32\OneDriveSetup.exe" -Force >null
 Write-Host "Removal complete!"
 Start-Sleep -Seconds 2
@@ -315,14 +317,13 @@ Enable-Privilege SeTakeOwnershipPrivilege
 
 $regKey = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey("zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks",[Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree,[System.Security.AccessControl.RegistryRights]::TakeOwnership)
 $regACL = $regKey.GetAccessControl()
-$regACL.SetOwner([System.Security.Principal.NTAccount]"Administrators")
+$regACL.SetOwner($adminGroup)
 $regKey.SetAccessControl($regACL)
 $regKey.Close()
 Write-Host "Owner changed to Administrators."
-
 $regKey = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey("zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks",[Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree,[System.Security.AccessControl.RegistryRights]::ChangePermissions)
 $regACL = $regKey.GetAccessControl()
-$regRule = New-Object System.Security.AccessControl.RegistryAccessRule ("Administrators","FullControl","ContainerInherit","None","Allow")
+$regRule = New-Object System.Security.AccessControl.RegistryAccessRule ($adminGroup,"FullControl","ContainerInherit","None","Allow")
 $regACL.SetAccessRule($regRule)
 $regKey.SetAccessControl($regACL)
 Write-Host "Permissions modified for Administrators group."
@@ -368,7 +369,7 @@ Clear-Host
 Write-Host "Mounting boot image:"
 $wimFilePath = "$($env:SystemDrive)\tiny11\sources\boot.wim" 
 & takeown "/F" $wimFilePath >null
-& icacls $wimFilePath "/grant" "Administrators:(F)" >null
+& icacls $wimFilePath "/grant" "$($adminGroup.Value):(F)"
 Set-ItemProperty -Path $wimFilePath -Name IsReadOnly -Value $false
 & 'dism' '/English' '/mount-image' "/imagefile:$mainOSDrive\tiny11\sources\boot.wim" '/index:2' "/mountdir:$mainOSDrive\scratchdir"
 Write-Host "Loading registry..."
